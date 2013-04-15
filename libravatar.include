@@ -1,0 +1,39 @@
+# -*-mode: apache;-*-
+    ExpiresActive On
+    RewriteEngine on
+
+    # Reduce the size of response body when redirecting
+    ErrorDocument 301 " "
+    ErrorDocument 302 " "
+
+    # Remove extensions from filenames
+    RewriteRule ^/avatar/([0-9a-f]{32,64})\..*$ /avatar/$1 [next]
+
+    # Pull the size out of the query string and into a subdirectory
+    RewriteCond %{QUERY_STRING} ^((?:.*&)?)s(?:ize)?=([0-9]+)((?:&.*)?)$
+    RewriteRule ^/avatar/([0-9a-f]{32,64})$ /avatar/%2/$1?%1%3 [next]
+
+    # Add a default size of 80 if it's missing
+    RewriteCond %{QUERY_STRING} !^((?:.*&)?)s(?:ize)?=([0-9]+)((?:&.*)?)$
+    RewriteRule ^/avatar/([0-9a-f]{32,64})$ /avatar/80/$1 [next]
+
+    # Serve the file if it exists
+    RewriteCond /var/www/fmarier-org%{SCRIPT_FILENAME} -f
+    RewriteRule ^/avatar/([0-9]+)/([0-9a-f]+)$ /avatar/$1/$2 [passthrough]
+
+    # File not found (default=404)
+    RewriteCond %{QUERY_STRING} ^(?:.*&)?d(?:efault)?=404(?:&.*)?$
+    RewriteRule ^/avatar/ - [last]
+
+    # File not found
+    RewriteRule ^/avatar/([0-9]+)/ %{DOCUMENT_ROOT}/nobody/$1.png [last]
+    RewriteRule ^/avatar/ %{DOCUMENT_ROOT}/nobody/80.png [last]
+
+    <Directory /var/www/fmarier-org/avatar>
+        FileETag None
+        ExpiresDefault "access plus 1 week"
+        DefaultType image/jpeg
+        Options FollowSymLinks MultiViews
+        AllowOverride None
+        Allow from all
+    </Directory>
